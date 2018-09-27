@@ -17,7 +17,7 @@ func (t *Contract) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
 	lowFuncation := strings.ToLower(funcation)
 
 	if lowFuncation == "init" { // 合同上链
-		return t.Init(stub, args)
+		return t.InitErc(stub, args)
 	}
 	if lowFuncation == "transfer" { // 交易
 		return t.Transfer(stub, args)
@@ -29,7 +29,7 @@ func (t *Contract) Invoke(stub shim.ChaincodeStubInterface) peer.Response {
 }
 
 /**  **/
-func (t *Contract) Init(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+func (t *Contract) InitErc(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	log.Logger.Info("##############调用合同初始化接口开始###############")
 	returnInfo := module.ReturnInfo{}
 	if len(args) >= 1 {
