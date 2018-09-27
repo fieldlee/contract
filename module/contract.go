@@ -3,10 +3,16 @@ package module
 // 交易结构
 type Transfer struct {
 	TxHash      string `json:"txHash"`
-	OperateTime uint64 `json:"operateTime"`
+	OperateTime int64  `json:"operateTime"`
 	Operation   string `json:"operation"` // 操作内容
-	Operator    string `json:"operator"`  // 确权信息操作人
+	From        string `json:"from"`
+	To          string `json:"to"`
+	Value       uint64 `json:"value"`
+	Operator    string `json:"operator"` // 确权信息操作人
 }
+
+/** 操作日志 **/
+type TransferLog map[string][]Transfer
 
 // 交易结构
 type Allowance map[string]uint64

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 )
@@ -48,6 +49,15 @@ func ToInit(stub shim.ChaincodeStubInterface, param module.InitParam) (tChan mod
 		tChan.ContractName = param.Name
 		tChan.Success = false
 		tChan.Info = err.Error()
+		return
+	}
+
+	loged := TransferLog(stub, param.Name, fmt.Sprint("Init ", param.Name), param.Issuer, param.Issuer, erc.TotalSupply)
+
+	if loged == false {
+		tChan.ContractName = param.Name
+		tChan.Success = false
+		tChan.Info = "操作日志记录错误，请重试"
 		return
 	}
 
@@ -123,6 +133,15 @@ func ToTransfer(stub shim.ChaincodeStubInterface, param module.TransferParam) (t
 		return
 	}
 
+	loged := TransferLog(stub, param.Name, fmt.Sprint("Transfer ", param.Name), param.From, param.To, param.Value)
+
+	if loged == false {
+		tChan.ContractName = param.Name
+		tChan.Success = false
+		tChan.Info = "操作日志记录错误，请重试"
+		return
+	}
+
 	err = stub.PutState(common.CONTRACT_INFO+common.ULINE+param.Name, jsonByte)
 	if err != nil {
 		log.Logger.Error("Transfer -- putState:" + err.Error() + "	name:" + param.Name)
@@ -166,7 +185,7 @@ func ToQuery(stub shim.ChaincodeStubInterface, param module.QueryParam) (tChan m
 		tChan.Address = param.Address
 		tChan.Success = true
 		tChan.Value = val
-		tChan.Info = "用户没有购买该资产"
+		tChan.Info = ""
 	} else {
 		tChan.Address = param.Address
 		tChan.Success = false
@@ -175,4 +194,45 @@ func ToQuery(stub shim.ChaincodeStubInterface, param module.QueryParam) (tChan m
 		return
 	}
 	return
+}
+
+/** 记录日志 **/
+func TransferLog(stub shim.ChaincodeStubInterface, name string, operation string, from string, to string, value uint64) bool {
+	jsonParam, err := stub.GetState(common.CONTRACT_TRANSFER + common.ULINE + name)
+	logTran := module.TransferLog{}
+	if jsonParam != nil {
+		err = json.Unmarshal(jsonParam, &logTran)
+		log.Logger.Error("TransferLog --err:" + err.Error())
+		return false
+	}
+
+	curuser := common.GetUserFromCertification(stub)
+
+	tran := module.Transfer{}
+	tran.TxHash = stub.GetTxID
+	tran.From = from
+	tran.To = to
+	tran.Value = value
+	tran.OperateTime = time.Now().Unix()
+	tran.Operation = operation
+	tran.Operator = curuser
+	if trans, ok := logTran[curuser]; ok {
+		logTran[curuser] = append(trans, tran)
+	} else {
+		tmp := make([]module.Transfer, 0)
+		logTran[curuser] = append(tmp, tran)
+	}
+
+	jsonByte, err := json.Marshal(logTran)
+	if err != nil {
+		log.Logger.Error("TransferLog --err:" + err.Error())
+		return false
+	}
+
+	err = stub.PutState(common.CONTRACT_TRANSFER+common.ULINE+name, jsonByte)
+	if err != nil {
+		log.Logger.Error("TransferLog -- putState:" + err.Error())
+		return false
+	}
+	return true
 }
