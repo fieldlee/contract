@@ -20,3 +20,11 @@ type QueryInfo struct {
 	Value   uint64 `json:"value"`
 	Info    string `json:"info"`
 }
+
+/** 查询信息 **/
+type QueryLog struct {
+	Address string `json:"address"`
+	Success bool   `json:"success"`
+	Info    string `json:"info"`
+	Actions string `json:"actions"`
+}

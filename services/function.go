@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"contract/common"
 	"contract/log"
 	"contract/module"
@@ -61,14 +62,14 @@ func ToInit(stub shim.ChaincodeStubInterface, param module.InitParam) (tChan mod
 		return
 	}
 
-	// loged := TransferLog(stub, param.Name, fmt.Sprint("Init ", param.Name), param.Issuer, param.Issuer, erc.TotalSupply)
+	loged := TransferLog(stub, param.Name, fmt.Sprint("Init ", param.Name), param.Issuer, param.Issuer, erc.TotalSupply)
 
-	// if loged == false {
-	// 	tChan.ContractName = param.Name
-	// 	tChan.Success = false
-	// 	tChan.Info = "操作日志记录错误，请重试"
-	// 	return
-	// }
+	if loged == false {
+		tChan.ContractName = param.Name
+		tChan.Success = false
+		tChan.Info = "操作日志记录错误，请重试"
+		return
+	}
 
 	tChan.ContractName = param.Name
 	tChan.Success = true
@@ -144,13 +145,13 @@ func ToTransfer(stub shim.ChaincodeStubInterface, param module.TransferParam) (t
 	}
 
 	// 记录操作日志
-	// loged := TransferLog(stub, param.Name, fmt.Sprint("Transfer ", param.Name), param.From, param.To, param.Value)
-	// if loged == false {
-	// 	tChan.ContractName = param.Name
-	// 	tChan.Success = false
-	// 	tChan.Info = "操作日志记录错误，请重试"
-	// 	return
-	// }
+	loged := TransferLog(stub, param.Name, fmt.Sprint("Transfer ", param.Name), param.From, param.To, param.Value)
+	if loged == false {
+		tChan.ContractName = param.Name
+		tChan.Success = false
+		tChan.Info = "操作日志记录错误，请重试"
+		return
+	}
 
 	tChan.ContractName = param.Name
 	tChan.Success = true
@@ -198,17 +199,56 @@ func ToQuery(stub shim.ChaincodeStubInterface, param module.QueryParam) (tChan m
 	return
 }
 
+/** 查找操作日志 **/
+func QueryLog(stub shim.ChaincodeStubInterface, param module.QueryParam) (tChan module.QueryLog) {
+	resultsIterator, err := stub.GetHistoryForKey(common.CONTRACT_TRANSFER + common.ULINE + param.Name + common.ULINE + param.Address)
+	if err != nil {
+		tChan.Info = err.Error()
+		tChan.Success = false
+		tChan.Address = param.Address
+		// tChan.Actions =
+		return
+	}
+	defer resultsIterator.Close()
+
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	bArrayMemberAlreadyWritten := false
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			tChan.Info = err.Error()
+			tChan.Success = false
+			tChan.Address = param.Address
+			return
+		}
+		// Add a comma before array members, suppress it for the first array member
+		if bArrayMemberAlreadyWritten == true {
+			buffer.WriteString(",")
+		}
+		item, _ := json.Marshal(queryResponse)
+		buffer.Write(item)
+		bArrayMemberAlreadyWritten = true
+	}
+	buffer.WriteString("]")
+
+	tChan.Actions = buffer.String()
+	tChan.Success = true
+	tChan.Address = param.Address
+	return
+}
+
 /** 记录日志 **/
 func TransferLog(stub shim.ChaincodeStubInterface, name string, operation string, from string, to string, value uint64) bool {
-	jsonParam, err := stub.GetState(common.CONTRACT_TRANSFER + common.ULINE + name)
-	logTran := module.TransferLog{}
-	if jsonParam != nil {
-		err = json.Unmarshal(jsonParam, &logTran)
-		log.Logger.Error("TransferLog --err:" + err.Error())
-		return false
-	}
+	// jsonParam, err := stub.GetState(common.CONTRACT_TRANSFER + common.ULINE + name)
+	// logTran := module.TransferLog{}
+	// if jsonParam != nil {
+	// 	err = json.Unmarshal(jsonParam, &logTran)
+	// 	log.Logger.Error("TransferLog --err:" + err.Error())
+	// 	return false
+	// }
 	curuser := common.GetUserFromCertification(stub)
-
 	tran := module.Transfer{}
 	tran.TxHash = stub.GetTxID()
 	tran.From = from
@@ -217,20 +257,13 @@ func TransferLog(stub shim.ChaincodeStubInterface, name string, operation string
 	tran.OperateTime = time.Now().Unix()
 	tran.Operation = operation
 	tran.Operator = curuser
-	if trans, ok := logTran[curuser]; ok {
-		logTran[curuser] = append(trans, tran)
-	} else {
-		tmp := make([]module.Transfer, 0)
-		logTran[curuser] = append(tmp, tran)
-	}
 
-	jsonByte, err := json.Marshal(logTran)
+	jsonByte, err := json.Marshal(tran)
 	if err != nil {
 		log.Logger.Error("TransferLog --err:" + err.Error())
 		return false
 	}
-
-	err = stub.PutState(common.CONTRACT_TRANSFER+common.ULINE+name, jsonByte)
+	err = stub.PutState(common.CONTRACT_TRANSFER+common.ULINE+name+common.ULINE+curuser, jsonByte)
 	if err != nil {
 		log.Logger.Error("TransferLog -- putState:" + err.Error())
 		return false
