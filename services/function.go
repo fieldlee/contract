@@ -52,7 +52,7 @@ func ToInit(stub shim.ChaincodeStubInterface, param module.InitParam) (tChan mod
 		return
 	}
 
-	loged := TransferLog(stub, param.Name, fmt.Sprint("Init ", param.Name), param.Issuer, param.Issuer, erc.TotalSupply)
+	loged := TransferLog(param.Issuer, param.Name, fmt.Sprint("Init ", param.Name), param.Issuer, param.Issuer, erc.TotalSupply)
 
 	if loged == false {
 		tChan.ContractName = param.Name
@@ -133,7 +133,7 @@ func ToTransfer(stub shim.ChaincodeStubInterface, param module.TransferParam) (t
 		return
 	}
 
-	loged := TransferLog(stub, param.Name, fmt.Sprint("Transfer ", param.Name), param.From, param.To, param.Value)
+	loged := TransferLog(param.From, param.Name, fmt.Sprint("Transfer ", param.Name), param.From, param.To, param.Value)
 
 	if loged == false {
 		tChan.ContractName = param.Name
@@ -197,7 +197,7 @@ func ToQuery(stub shim.ChaincodeStubInterface, param module.QueryParam) (tChan m
 }
 
 /** 记录日志 **/
-func TransferLog(stub shim.ChaincodeStubInterface, name string, operation string, from string, to string, value uint64) bool {
+func TransferLog(curuser string, name string, operation string, from string, to string, value uint64) bool {
 	jsonParam, err := stub.GetState(common.CONTRACT_TRANSFER + common.ULINE + name)
 	logTran := module.TransferLog{}
 	if jsonParam != nil {
@@ -205,9 +205,6 @@ func TransferLog(stub shim.ChaincodeStubInterface, name string, operation string
 		log.Logger.Error("TransferLog --err:" + err.Error())
 		return false
 	}
-
-	curuser := common.GetUserFromCertification(stub)
-
 	tran := module.Transfer{}
 	tran.TxHash = stub.GetTxID()
 	tran.From = from
