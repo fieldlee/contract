@@ -23,8 +23,8 @@ type QueryInfo struct {
 
 /** 查询信息 **/
 type QueryLog struct {
-	Address string `json:"address"`
-	Success bool   `json:"success"`
-	Info    string `json:"info"`
-	Actions string `json:"actions"`
+	Address string     `json:"address"`
+	Success bool       `json:"success"`
+	Info    string     `json:"info"`
+	Actions []Transfer `json:"actions"`
 }

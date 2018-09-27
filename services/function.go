@@ -1,7 +1,6 @@
 package services
 
 import (
-	"bytes"
 	"contract/common"
 	"contract/log"
 	"contract/module"
@@ -211,29 +210,30 @@ func QueryLog(stub shim.ChaincodeStubInterface, param module.QueryParam) (tChan 
 	}
 	defer resultsIterator.Close()
 
-	var buffer bytes.Buffer
-	buffer.WriteString("[")
-
-	bArrayMemberAlreadyWritten := false
+	results := make([]module.Transfer, 0)
 	for resultsIterator.HasNext() {
-		queryResponse, err := resultsIterator.Next()
+		result, err := resultsIterator.Next()
 		if err != nil {
 			tChan.Info = err.Error()
 			tChan.Success = false
 			tChan.Address = param.Address
+			// tChan.Actions =
 			return
 		}
-		// Add a comma before array members, suppress it for the first array member
-		if bArrayMemberAlreadyWritten == true {
-			buffer.WriteString(",")
+		tran := module.Transfer{}
+		err = json.Unmarshal(result.Value, &tran)
+		if err != nil {
+			tChan.Info = err.Error()
+			tChan.Success = false
+			tChan.Address = param.Address
+			// tChan.Actions =
+			return
+		} else {
+			results = append(results, tran)
 		}
-		item, _ := json.Marshal(queryResponse)
-		buffer.Write(item)
-		bArrayMemberAlreadyWritten = true
 	}
-	buffer.WriteString("]")
 
-	tChan.Actions = buffer.String()
+	tChan.Actions = results
 	tChan.Success = true
 	tChan.Address = param.Address
 	return
