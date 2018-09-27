@@ -37,7 +37,7 @@ func ToInit(stub shim.ChaincodeStubInterface, param module.InitParam) (tChan mod
 	erc.Name = param.Name
 	erc.Decimals = param.Decimals
 	erc.Symbol = param.Symbol
-	erc.TotalSupply = param.TotalSupply * uint64(math.Pow(10, param.Decimals))
+	erc.TotalSupply = param.TotalSupply * uint64(math.Pow(float64(10), float64(param.Decimals)))
 	balance := make(map[string]uint64)
 	balance[param.Issuer] = erc.TotalSupply
 	erc.BalanceOf = balance
@@ -94,18 +94,13 @@ func ToTransfer(stub shim.ChaincodeStubInterface, param module.TransferParam) (t
 		return
 	}
 	// balance for from more than value
-	if erc.BalanceOf[param.From] == nil {
-		tChan.ContractName = param.Name
-		tChan.Success = false
-		tChan.Info = fmt.Sprint(param.From, "-- value: 0")
-		return
-	} else {
-		if erc.BalanceOf[param.From] >= param.Value {
-			erc.BalanceOf[param.From] = erc.BalanceOf[param.From] - param.Value
-			if erc.BalanceOf[param.To] == nil {
-				erc.BalanceOf[param.To] = param.Value
+	if val, ok := erc.BalanceOf[param.From]; ok {
+		if val >= param.Value {
+			erc.BalanceOf[param.From] = val - param.Value
+			if toVal, toOk := erc.BalanceOf[param.To]; toOk {
+				erc.BalanceOf[param.To] = toVal + param.Value
 			} else {
-				erc.BalanceOf[param.To] = erc.BalanceOf[param.To] + param.Value
+				erc.BalanceOf[param.To] = param.Value
 			}
 		} else {
 			tChan.ContractName = param.Name
@@ -113,6 +108,11 @@ func ToTransfer(stub shim.ChaincodeStubInterface, param module.TransferParam) (t
 			tChan.Info = fmt.Sprint(param.From, "-- value:", erc.BalanceOf[param.From])
 			return
 		}
+	} else {
+		tChan.ContractName = param.Name
+		tChan.Success = false
+		tChan.Info = fmt.Sprint(param.From, "-- value: 0")
+		return
 	}
 
 	jsonByte, err := json.Marshal(erc)
@@ -162,17 +162,16 @@ func ToQuery(stub shim.ChaincodeStubInterface, param module.QueryParam) (tChan m
 		return
 	}
 	// balance for from more than value
-	if erc.BalanceOf[param.Address] == nil {
+	if val, ok := erc.BalanceOf[param.Address]; ok {
+		tChan.Address = param.Address
+		tChan.Success = true
+		tChan.Value = val
+		tChan.Info = "用户没有购买该资产"
+	} else {
 		tChan.Address = param.Address
 		tChan.Success = false
 		tChan.Value = 0
 		tChan.Info = "用户没有购买该资产"
 		return
-	} else {
-		tChan.Address = param.Address
-		tChan.Success = true
-		tChan.Value = erc.BalanceOf[param.Address]
-		tChan.Info = "用户没有购买该资产"
 	}
-	return
 }
