@@ -61,7 +61,7 @@ func ToInit(stub shim.ChaincodeStubInterface, param module.InitParam) (tChan mod
 		return
 	}
 
-	loged := TransferLog(param.Issuer, param.Name, fmt.Sprint("Init ", param.Name), param.Issuer, param.Issuer, erc.TotalSupply)
+	loged := TransferLog(stub, param.Name, fmt.Sprint("Init ", param.Name), param.Issuer, param.Issuer, erc.TotalSupply)
 
 	if loged == false {
 		tChan.ContractName = param.Name
@@ -144,7 +144,7 @@ func ToTransfer(stub shim.ChaincodeStubInterface, param module.TransferParam) (t
 	}
 
 	// 记录操作日志
-	loged := TransferLog(param.From, param.Name, fmt.Sprint("Transfer ", param.Name), param.From, param.To, param.Value)
+	loged := TransferLog(stub, param.Name, fmt.Sprint("Transfer ", param.Name), param.From, param.To, param.Value)
 	if loged == false {
 		tChan.ContractName = param.Name
 		tChan.Success = false
