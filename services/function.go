@@ -61,14 +61,14 @@ func ToInit(stub shim.ChaincodeStubInterface, param module.InitParam) (tChan mod
 		return
 	}
 
-	loged := TransferLog(stub, param.Name, fmt.Sprint("Init ", param.Name), param.Issuer, param.Issuer, erc.TotalSupply)
+	// loged := TransferLog(stub, param.Name, fmt.Sprint("Init ", param.Name), param.Issuer, param.Issuer, erc.TotalSupply)
 
-	if loged == false {
-		tChan.ContractName = param.Name
-		tChan.Success = false
-		tChan.Info = "操作日志记录错误，请重试"
-		return
-	}
+	// if loged == false {
+	// 	tChan.ContractName = param.Name
+	// 	tChan.Success = false
+	// 	tChan.Info = "操作日志记录错误，请重试"
+	// 	return
+	// }
 
 	tChan.ContractName = param.Name
 	tChan.Success = true
@@ -144,13 +144,13 @@ func ToTransfer(stub shim.ChaincodeStubInterface, param module.TransferParam) (t
 	}
 
 	// 记录操作日志
-	loged := TransferLog(stub, param.Name, fmt.Sprint("Transfer ", param.Name), param.From, param.To, param.Value)
-	if loged == false {
-		tChan.ContractName = param.Name
-		tChan.Success = false
-		tChan.Info = "操作日志记录错误，请重试"
-		return
-	}
+	// loged := TransferLog(stub, param.Name, fmt.Sprint("Transfer ", param.Name), param.From, param.To, param.Value)
+	// if loged == false {
+	// 	tChan.ContractName = param.Name
+	// 	tChan.Success = false
+	// 	tChan.Info = "操作日志记录错误，请重试"
+	// 	return
+	// }
 
 	tChan.ContractName = param.Name
 	tChan.Success = true
