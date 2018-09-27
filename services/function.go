@@ -209,7 +209,7 @@ func TransferLog(stub shim.ChaincodeStubInterface, name string, operation string
 	curuser := common.GetUserFromCertification(stub)
 
 	tran := module.Transfer{}
-	tran.TxHash = stub.GetTxID
+	tran.TxHash = stub.GetTxID()
 	tran.From = from
 	tran.To = to
 	tran.Value = value
