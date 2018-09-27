@@ -174,4 +174,5 @@ func ToQuery(stub shim.ChaincodeStubInterface, param module.QueryParam) (tChan m
 		tChan.Info = "用户没有购买该资产"
 		return
 	}
+	return
 }
